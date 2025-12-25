@@ -6,7 +6,7 @@
     "node": "18"
   },
   "scripts": {
-    "start": "npm --prefix functions run serve",
+    "start": "npm --prefix functions start",
     "dev": "nodemon functions/index.js",
     "install:functions": "cd functions && npm install",
     "setup": "npm install && npm --prefix functions install",
