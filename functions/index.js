@@ -9,7 +9,6 @@ const path = require("path");
 if (process.env.NODE_ENV !== "production") {
   try {
     const dotenv = require("dotenv");
-    // try functions/.env then fallback to parent ../.env
     dotenv.config({ path: path.resolve(__dirname, ".env") });
     dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
   } catch (e) {
@@ -17,7 +16,20 @@ if (process.env.NODE_ENV !== "production") {
   }
 }
 
-admin.initializeApp();
+// Initialize Firebase with credentials from env
+let firebaseConfig = null;
+if (process.env.FIREBASE_CONFIG) {
+  try {
+    firebaseConfig = JSON.parse(process.env.FIREBASE_CONFIG);
+    admin.initializeApp({ credential: admin.credential.cert(firebaseConfig) });
+  } catch (err) {
+    console.error("Failed to parse FIREBASE_CONFIG:", err.message);
+    admin.initializeApp();
+  }
+} else {
+  admin.initializeApp();
+}
+
 const db = admin.firestore();
 
 const app = express();
