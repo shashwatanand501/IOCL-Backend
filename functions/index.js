@@ -237,6 +237,20 @@ app.post("/bill/download", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-/* ---------------- EXPORT ---------------- */
 
-exports.api = onRequest({ maxInstances: 10 }, app);
+// Mount app under /api and start an HTTP server when run directly (Railway)
+const serverApp = express();
+serverApp.use(cors({ origin: true }));
+serverApp.use(express.json());
+serverApp.use("/api", app);
+
+// Start server when run as a standalone process
+if (require.main === module) {
+  const port = process.env.PORT || 3000;
+  serverApp.listen(port, () => {
+    console.log(`Server listening on port ${port}`);
+  });
+}
+
+// Export for Firebase Functions too
+exports.api = onRequest({ maxInstances: 10 }, serverApp);
