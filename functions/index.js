@@ -16,18 +16,21 @@ if (process.env.NODE_ENV !== "production") {
   }
 }
 
-// Initialize Firebase with credentials from env
-let firebaseConfig = null;
-if (process.env.FIREBASE_CONFIG) {
-  try {
-    firebaseConfig = JSON.parse(process.env.FIREBASE_CONFIG);
-    admin.initializeApp({ credential: admin.credential.cert(firebaseConfig) });
-  } catch (err) {
-    console.error("Failed to parse FIREBASE_CONFIG:", err.message);
+// Initialize Firebase with credentials from env (safe parse, only once)
+if (!admin.apps || admin.apps.length === 0) {
+  if (process.env.FIREBASE_CONFIG) {
+    try {
+      const cfg = typeof process.env.FIREBASE_CONFIG === "string"
+        ? JSON.parse(process.env.FIREBASE_CONFIG)
+        : process.env.FIREBASE_CONFIG;
+      admin.initializeApp({ credential: admin.credential.cert(cfg) });
+    } catch (err) {
+      console.error("Failed to parse FIREBASE_CONFIG, falling back to default init:", err.message);
+      admin.initializeApp();
+    }
+  } else {
     admin.initializeApp();
   }
-} else {
-  admin.initializeApp();
 }
 
 const db = admin.firestore();
@@ -250,19 +253,28 @@ app.post("/bill/download", async (req, res) => {
   }
 });
 
-// Mount app under /api and start an HTTP server when run directly (Railway)
+// --- Mount and start server for Railway / local runs ---
+// mount existing app under /api so Railway URL /api/* works
 const serverApp = express();
 serverApp.use(cors({ origin: true }));
 serverApp.use(express.json());
 serverApp.use("/api", app);
 
-// Start server when run as a standalone process
+// start listening when run directly (Railway runs node functions/index.js)
 if (require.main === module) {
-  const port = process.env.PORT || 3000;
+  const port = parseInt(process.env.PORT, 10) || 3000;
   serverApp.listen(port, () => {
     console.log(`Server listening on port ${port}`);
   });
+
+  // handle termination signals gracefully
+  const shutdown = (sig) => {
+    console.log("Received", sig, "shutting down");
+    process.exit(0);
+  };
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
 
-// Export for Firebase Functions too
+// export for Firebase Functions (keeps existing behavior)
 exports.api = onRequest({ maxInstances: 10 }, serverApp);
