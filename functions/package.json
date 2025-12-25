@@ -5,7 +5,7 @@
     "lint": "eslint .",
     "serve": "npx firebase emulators:start --only functions",
     "shell": "npx firebase functions:shell",
-    "start": "node server.js",
+    "start": "node index.js",
     "deploy": "npx firebase deploy --only functions",
     "logs": "npx firebase functions:log"
   },
